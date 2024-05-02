@@ -72,12 +72,12 @@ def generate_fake_samples(generator, latent_dim, n_samples):
 
 def run_exp1():
     #experiment setup
-    n_classes = 16
-    n_samples = [16] # define the number of labeled samples here
-    run_times = 1 # define the number of runs to traing under this setting
-    optimizer = Adam(lr=0.0002, beta_1=0.5)
-    n_epochs = 100
-    n_batch = 128
+    n_classes = 16 # ??
+    n_samples = [16] # 레이블된 샘플 갯수 정의 / define the number of labeled samples here
+    run_times = 1 # 학습 횟수 정의 / define the number of runs to traing under this setting
+    optimizer = Adam(lr=0.0002, beta_1=0.5) # 텐서플로의 최적화기
+    n_epochs = 100 # 모든데이터셋이 신경망을 통과한 횟수 / 배치*iterations = epochs
+    n_batch = 128 # 배치 사이즈 
 
     #load dataset
     dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))
@@ -260,3 +260,4 @@ def run_cnn():
 if __name__ == '__main__':
 
     run_exp1()
+    # main에서 실행되는 코드를 디버깅하듯 따라가며 이해하기!
