@@ -80,8 +80,8 @@ def run_exp1():
     n_batch = 128 # 배치 사이즈 
 
     #load dataset
-    dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))
-    X_tra, y_tra, X_tst, y_tst = dataset
+    dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))   # pickle은 데이터형 변환 없이 그대로 가져올 수 있게하는 기능!  'rb' 즉 바이너리 형태로 'dataset/EXP1.pickle' 데이터를 로드한다는 의미
+    X_tra, y_tra, X_tst, y_tst = dataset  # tra : training, tst : test / 피클로 가져온걸 학습/평가자료로 저장
     for j in range(len(n_samples)):
         history = []
         # select supervised dataset
