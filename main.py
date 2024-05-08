@@ -39,12 +39,12 @@ def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_s
 
     return tst_history
 
-def select_supervised_samples(X, Y, n_samples, n_classes):
-    X_list, Y_list = list(), list()
+def select_supervised_samples(X, Y, n_samples, n_classes):  # X=X훈련데이터셋, Y=Y훈련데이터셋,  (X_tra, y_tra, n_samples[j],  n_classes)        
+    X_list, Y_list = list(), list()  # 새 리스트 변수 생성
     n_per_class = int(n_samples/n_classes)
 
     for i in range(n_classes):
-        X_with_class = X[Y==i]
+        X_with_class = X[Y==i]  # 데이터셋 X에서 Y가 i인 인스턴스들만 선별하여 새로운 데이터셋 X_with_class를 만듭니다.
         ix = np.random.randint(0, len(X_with_class), n_per_class)
         [X_list.append(X_with_class[j]) for j in ix]
         [Y_list.append(i) for j in ix]
@@ -84,6 +84,7 @@ def run_exp1():
     X_tra, y_tra, X_tst, y_tst = dataset  # tra : training, tst : test / 피클로 가져온걸 학습/평가자료로 저장
     for j in range(len(n_samples)):
         history = []
+
         # select supervised dataset
         X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)        
         for i in range(run_times):

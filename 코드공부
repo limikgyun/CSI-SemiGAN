@@ -1,0 +1,5 @@
+n_samples = [16]
+print(n_samples)
+print(len(n_samples))
+j=0
+print(n_samples[j])
