@@ -41,7 +41,7 @@ def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_s
 
 def select_supervised_samples(X, Y, n_samples, n_classes):  # X=X훈련데이터셋, Y=Y훈련데이터셋,  (X_tra, y_tra, n_samples[j],  n_classes)        
     X_list, Y_list = list(), list()  # 새 리스트 변수 생성
-    n_per_class = int(n_samples/n_classes)
+    n_per_class = int(n_samples/n_classes)  # 클래스 당 샘플 갯수
 
     for i in range(n_classes):
         X_with_class = X[Y==i]  # 데이터셋 X에서 Y가 i인 인스턴스들만 선별하여 새로운 데이터셋 X_with_class를 만듭니다.
