@@ -1,5 +1,5 @@
 n_samples = [16]
-print(n_samples)
-print(len(n_samples))
+print("n_samples =", n_samples)
+print("len(n_samples) =", len(n_samples))
 j=0
-print(n_samples[j])
+print('n_samples[j] =', n_samples[j])

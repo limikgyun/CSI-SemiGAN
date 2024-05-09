@@ -39,7 +39,7 @@ def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_s
 
     return tst_history
 
-def select_supervised_samples(X, Y, n_samples, n_classes):  # X=X훈련데이터셋, Y=Y훈련데이터셋  (X_tra, y_tra, n_samples[j],  n_classes)        
+def select_supervised_samples(X, Y, n_samples, n_classes):  # X=데이터셋의 X값, Y=데이터셋의 Y값 ＜＜＜ (X_tra, y_tra, n_samples[j],  n_classes)        
     X_list, Y_list = list(), list()  # 새 리스트 변수 생성
     n_per_class = int(n_samples/n_classes)  # 클래스 당 샘플 갯수
 
@@ -48,7 +48,7 @@ def select_supervised_samples(X, Y, n_samples, n_classes):  # X=X훈련데이터
         ix = np.random.randint(0, len(X_with_class), n_per_class)  # np.random.randint (x, y, size) 범위안에 있는 정수 값을 랜덤으로 지정된 배열의 크기만큼 생성한다. 이 때 x와 y값은 범위의 시작과 끝값이며 size는 array의 크기를 의미한다.
         [X_list.append(X_with_class[j]) for j in ix]  # x_list에 클래스가 ix인 x with classv값들을 저장
         [Y_list.append(i) for j in ix]   # 그 클래스들을 저장
-    return np.asarray(X_list), np.asarray(Y_list)
+    return np.asarray(X_list), np.asarray(Y_list)   # 즉 특정한 클래스값 Y를 가진 데이터 X 만 모으고서, 이들을 X_list Y_list로 출력해내는 기능을 한다.
 
 def generate_real_samples(dataset, n_samples):
 
@@ -82,24 +82,27 @@ def run_exp1():
     #load dataset
     dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))   # pickle은 데이터형 변환 없이 그대로 가져올 수 있게하는 기능!  'rb' 즉 바이너리 형태로 'dataset/EXP1.pickle' 데이터를 로드한다는 의미
     X_tra, y_tra, X_tst, y_tst = dataset  # tra : training, tst : test / 피클로 가져온걸 학습/평가자료로 저장
-    for j in range(len(n_samples)):
+    for j in range(len(n_samples)):   # len(n_samples) = 1 / n_samples = [16]
         history = []
 
         # select supervised dataset
-        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)  #x는 데이터 y는 레이블값 이겠지??  
-        for i in range(run_times):
+        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)  # x는 데이터 y는 레이블값(클래스값) 이겠지??  
+        for i in range(run_times):   # run_times 횟수만큼 반복문을 실행하는 문법
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
             seed(run_times)
             # define a semi-GAN model
-            d_model, c_model = define_discriminator(n_classes, optimizer)
-            g_model = define_generator()
-            gan_model = define_GAN(g_model, d_model, optimizer)
+            d_model, c_model = define_discriminator(n_classes, optimizer)   # 분류기, models.py 파일의 define_discriminator 정의됨.
+            g_model = define_generator()   # 생성기, models.py에서 정의됨.
+            gan_model = define_GAN(g_model, d_model, optimizer)    # gan, 마찬가지
 
             # train the semi-GAN model
             tst_acc = fit_GAN(i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch)
+            # i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch
+            # (run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim = 100):
+            # i = 실행횟수 변수
 
-            history.append(max(tst_acc))
+            history.append(max(tst_acc))   # 리스트 내의 최댓값 들을 history 리스트에 추가
             #history.append(tst_acc)
         best = max (history)
         # save results:
