@@ -43,11 +43,11 @@ def select_supervised_samples(X, Y, n_samples, n_classes):  # X=X훈련데이터
     X_list, Y_list = list(), list()  # 새 리스트 변수 생성
     n_per_class = int(n_samples/n_classes)  # 클래스 당 샘플 갯수
 
-    for i in range(n_classes):
+    for i in range(n_classes):  # y는 클래스값!! 즉 레이블값=클래스,
         X_with_class = X[Y==i]  # 데이터셋 X에서 Y가 i인 인스턴스들만 선별하여 새로운 데이터셋 X_with_class를 만듭니다.
         ix = np.random.randint(0, len(X_with_class), n_per_class)  # np.random.randint (x, y, size) 범위안에 있는 정수 값을 랜덤으로 지정된 배열의 크기만큼 생성한다. 이 때 x와 y값은 범위의 시작과 끝값이며 size는 array의 크기를 의미한다.
-        [X_list.append(X_with_class[j]) for j in ix]
-        [Y_list.append(i) for j in ix]
+        [X_list.append(X_with_class[j]) for j in ix]  # x_list에 클래스가 ix인 x with classv값들을 저장
+        [Y_list.append(i) for j in ix]   # 그 클래스들을 저장
     return np.asarray(X_list), np.asarray(Y_list)
 
 def generate_real_samples(dataset, n_samples):
@@ -86,7 +86,7 @@ def run_exp1():
         history = []
 
         # select supervised dataset
-        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)        
+        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)  #x는 데이터 y는 레이블값 이겠지??  
         for i in range(run_times):
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
