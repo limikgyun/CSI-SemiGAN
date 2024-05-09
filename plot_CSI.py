@@ -23,7 +23,7 @@ def print_csi(exp, t, n_classes, dataset):
 		#plt.savefig('visualizations/CSI/%s-p%d.png'%(exp, p+1), dpi=100)		
 		#plt.close() 
 
-dataset1 = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))), scale_range =(0,1))
+dataset1 = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))), scale_range =(0,1))   # data_preproc는 utils에 있음
 X_tra1, _, _, _ = dataset1
 X_tra1 = X_tra1.reshape(16,-1,120)
 
