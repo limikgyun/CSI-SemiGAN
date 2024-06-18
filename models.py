@@ -1,81 +1,100 @@
-import os 
-
+import os
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.backend as K
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import BatchNormalization, Lambda, Conv1D, Conv2D, LeakyReLU,ReLU, Dropout, Flatten, Dense, Activation, Reshape, Conv2DTranspose, Input
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 
 def custom_activation(output):
-    logexpsum = K.sum(K.exp(output), axis=-1, keepdims=True)
-    result= logexpsum/ (logexpsum+ 1.0)
-
+    logexpsum = torch.sum(torch.exp(output), dim=-1, keepdim=True)
+    result = logexpsum / (logexpsum + 1.0)
     return result
 
-def define_discriminator(n_classes, opt, in_shape=(1, 120, 1)):
-    inp = Input(shape= in_shape)
-    #li = Reshape((1, 120, 1))(inp)
-    fe = Conv2D(filters=32, kernel_size=(1,5))(inp)
-    fe = LeakyReLU()(fe)
-    #fe = ReLU()(fe)
-    fe = Conv2D(filters=32, kernel_size=(1,5))(fe)
-    fe = LeakyReLU()(fe)
-    #fe = ReLU()(fe)
-    fe = Conv2D(filters=32, kernel_size=(1,5))(fe)
-    fe = LeakyReLU()(fe)
-    #fe = ReLU()(fe)
-    fe = Flatten()(fe)
-    fe = Dropout(0.4)(fe)
-    fe = Dense(n_classes)(fe)
-    #Classifer C
-    c_out_layer = Activation('softmax')(fe)
-    c_model = Model(inp, c_out_layer)
-    c_model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
-    #Discriminator D
-    d_out_layer = Lambda(custom_activation)(fe)
-    d_model = Model(inp, d_out_layer)
-    d_model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
+class Discriminator(nn.Module):
+    def __init__(self, n_classes, in_shape=(1, 120, 1)):
+        super(Discriminator, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(1, 5))
+        self.leaky_relu = nn.LeakyReLU()
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(1, 5))
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(1, 5))
+        self.dropout = nn.Dropout(0.4)
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(32 * 1 * 108, n_classes)
+        self.classifier = nn.Softmax(dim=1)
+        self.custom_activation = custom_activation
 
-    return d_model, c_model 
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.leaky_relu(x)
+        x = self.conv2(x)
+        x = self.leaky_relu(x)
+        x = self.conv3(x)
+        x = self.leaky_relu(x)
+        x = self.flatten(x)
+        x = self.dropout(x)
+        classifier_output = self.fc(x)
+        classifier_output = self.classifier(classifier_output)
+        discriminator_output = self.custom_activation(x)
+        return classifier_output, discriminator_output
 
-def define_generator(latent_dim = 100):
-    in_lat = Input(shape=(latent_dim,))
-    n_nodes = 32 * 1 * 108
-    gen = Dense(n_nodes)(in_lat)
-    gen = ReLU()(gen)
-    gen = Reshape((1, 108, 32))(gen)
-    gen = Conv2DTranspose(filters = 32, kernel_size=(1,5), strides=1)(gen)
-    gen = ReLU()(gen)   
-    gen = Conv2DTranspose(filters = 32, kernel_size=(1,5), strides=1)(gen)
-    gen = ReLU()(gen)
-    gen = Conv2DTranspose(filters = 32, kernel_size=(1,5), strides=1)(gen)
-    gen = ReLU()(gen)
-    out_layer = Conv2DTranspose(filters = 1, kernel_size= (1, 5), strides=1, activation='tanh', padding='same')(gen)
-    g_model = Model(in_lat, out_layer)
+class Generator(nn.Module):
+    def __init__(self, latent_dim=100):
+        super(Generator, self).__init__()
+        self.latent_dim = latent_dim
+        n_nodes = 32 * 1 * 108
+        self.fc = nn.Linear(self.latent_dim, n_nodes)
+        self.relu = nn.ReLU()
+        self.conv_transpose1 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(1, 5), stride=1)
+        self.conv_transpose2 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(1, 5), stride=1)
+        self.conv_transpose3 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(1, 5), stride=1)
+        self.conv_transpose4 = nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=(1, 5), stride=1, padding=(0, 2), activation=nn.Tanh())
 
-    return g_model
+    def forward(self, x):
+        x = self.fc(x)
+        x = self.relu(x)
+        x = x.view(-1, 32, 1, 108)
+        x = self.conv_transpose1(x)
+        x = self.relu(x)
+        x = self.conv_transpose2(x)
+        x = self.relu(x)
+        x = self.conv_transpose3(x)
+        x = self.relu(x)
+        x = self.conv_transpose4(x)
+        return x
 
-def define_GAN(g_model, d_model, opt):
-    d_model.trainable = False
-    gan_output = d_model(g_model.output)
-    model = Model(g_model.input, gan_output)    
-    model.compile(loss='binary_crossentropy', optimizer=opt)
-    #model.summary()
-    return model
+class GAN(nn.Module):
+    def __init__(self, g_model, d_model):
+        super(GAN, self).__init__()
+        self.g_model = g_model
+        self.d_model = d_model
+
+    def forward(self, x):
+        g_output = self.g_model(x)
+        d_output = self.d_model(g_output)
+        return d_output, g_output
    
-def CNN(n_classes, opt):
-    model = Sequential()
-    model.add(Conv2D(filters=32, kernel_size=(1,5), input_shape=(1, 120, 1), activation='relu'))
-    model.add(Conv2D(filters=32, kernel_size=(1,5), activation='relu'))
-    model.add(Conv2D(filters=32, kernel_size=(1,5), activation='relu'))
-    model.add(Flatten())
-    model.add(Dense(n_classes))
-    model.add(Activation('softmax'))
-    model.compile(loss='sparse_categorical_crossentropy',
-              optimizer=opt,
-              metrics=['accuracy'])
+class CNN(nn.Module):
+    def __init__(self, n_classes):
+        super(CNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(1, 5))
+        self.relu = nn.ReLU()
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(1, 5))
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(1, 5))
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(32 * 1 * 108, n_classes)
+        self.softmax = nn.Softmax(dim=1)
 
-    return model
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.relu(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        x = self.softmax(x)
+        return x
 
 
