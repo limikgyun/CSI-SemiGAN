@@ -1,35 +1,55 @@
-import time
-import pickle
+import torch
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
-from numpy.random import seed
+from torch import optim
+from torch.utils.data import DataLoader, TensorDataset
 
-from models import *
-from utils import *
+from models import *  # PyTorch 모델 정의가 포함된 가정
+from utils import *  # PyTorch에 맞게 수정된 유틸리티 함수 가정
 
-def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim = 100):
+def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim=100):
     tst_history = []
     X_tra, y_tra, X_tst, y_tst = dataset
-    # calculate the number of batches per training epoch
     bat_per_epo = int(X_tra.shape[0] / n_batch)
-    # calculate the number of training iterations
     n_steps = bat_per_epo * n_epochs
-    # calculate the size of half a batch of samples
     half_batch = int(n_batch / 2)
-    # fit the model
+
+    # Optimizers
+    optimizer_g = optim.Adam(g_model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    optimizer_d = optim.Adam(d_model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    optimizer_c = optim.Adam(c_model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+
     for i in range(n_steps):
         # update discriminator (c)
-        [Xsup_real, ysup_real], _ = generate_real_samples([X_sup, y_sup], half_batch)
-        c_loss, c_acc = c_model.train_on_batch(Xsup_real, ysup_real)
+        Xsup_real, ysup_real = generate_real_samples([X_sup, y_sup], half_batch)
+        Xsup_real, ysup_real = torch.tensor(Xsup_real).float(), torch.tensor(ysup_real).float()
+        c_model.zero_grad()
+        y_pred = c_model(Xsup_real)
+        c_loss = torch.nn.functional.binary_cross_entropy_with_logits(y_pred, ysup_real)
+        c_loss.backward()
+        optimizer_c.step()
+
         # update discriminator (d)
-        [X_real, _], y_real = generate_real_samples((X_tra, y_tra), half_batch)
-        d_loss1 = d_model.train_on_batch(X_real, y_real)
+        X_real, y_real = generate_real_samples((X_tra, y_tra), half_batch)
+        X_real, y_real = torch.tensor(X_real).float(), torch.tensor(y_real).float()
+        d_model.zero_grad()
+        y_pred_real = d_model(X_real)
+        d_loss_real = torch.nn.functional.binary_cross_entropy_with_logits(y_pred_real, y_real)
+        d_loss_real.backward()
+
         X_fake, y_fake = generate_fake_samples(g_model, latent_dim, half_batch)
-        d_loss2 = d_model.train_on_batch(X_fake, y_fake)
+        X_fake, y_fake = torch.tensor(X_fake).float(), torch.tensor(y_fake).float()
+        y_pred_fake = d_model(X_fake)
+        d_loss_fake = torch.nn.functional.binary_cross_entropy_with_logits(y_pred_fake, y_fake)
+        d_loss_fake.backward()
+        optimizer_d.step()
+
         # update generator (g)
-        X_gan, y_gan = generate_latent_points(latent_dim, n_batch), np.ones((n_batch, 1))
-        g_loss = gan_model.train_on_batch(X_gan, y_gan)
+        X_gan, y_gan = generate_latent_points(latent_dim, n_batch), torch.ones((n_batch, 1))
+        gan_model.zero_grad()
+        y_pred_gan = gan_model(X_gan)
+        g_loss = torch.nn.functional.binary_cross_entropy_with_logits(y_pred_gan, y_gan)
+        g_loss.backward()
+        optimizer_g.step()
         # summarize loss on this batch
         print('>%d/%d/%d, c[%.3f,%.0f], d[%.3f,%.3f], g[%.3f]' % (run+1, i+1, n_steps, c_loss, c_acc*100, d_loss1[0], d_loss2[0], g_loss))
         # test after a epoch
