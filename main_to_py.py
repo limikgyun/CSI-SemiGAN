@@ -7,7 +7,6 @@ from numpy.random import seed
 
 from models import *
 from utils import *
-from main import *
 
 def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim = 100):
     tst_history = []
@@ -71,7 +70,7 @@ def generate_fake_samples(generator, latent_dim, n_samples):
     y = np.zeros((n_samples, 1))
     return images, y   
 
-def control_generation():
+def run_exp1():
     #experiment setup
     n_classes = 16 # ??
     n_samples = [16] # 레이블된 샘플 갯수 정의 / define the number of labeled samples here
@@ -80,7 +79,7 @@ def control_generation():
     n_epochs = 100 # 모든데이터셋이 신경망을 통과한 횟수 / 배치*iterations = epochs
     n_batch = 128 # 배치 사이즈 
 
-    #load datasetㅡ
+    #load dataset
     dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))   # pickle은 데이터형 변환 없이 그대로 가져올 수 있게하는 기능!  'rb' 즉 바이너리 형태로 'dataset/EXP1.pickle' 데이터를 로드한다는 의미
     X_tra, y_tra, X_tst, y_tst = dataset  # tra : training, tst : test / 피클로 가져온걸 학습/평가자료로 저장
     for j in range(len(n_samples)):   # len(n_samples) = 1 / n_samples = [16]
@@ -117,52 +116,104 @@ def control_generation():
         #c_model.save('exp1_result/GAN-c-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
 
 
-def control_rp():
+def run_exp2():
     #experiment setup
-    n_classes = 16 # ??
-    n_samples = [16] # 레이블된 샘플 갯수 정의 / define the number of labeled samples here
-    run_times = 1 # 학습 횟수 정의 / define the number of runs to traing under this setting
-    optimizer = Adam(lr=0.0002, beta_1=0.5) # 텐서플로의 최적화기
-    n_epochs = 100 # 모든데이터셋이 신경망을 통과한 횟수 / 배치*iterations = epochs
-    n_batch = 128 # 배치 사이즈 
+    n_classes = 14
+    n_samples = [14] # define the number of labeled samples here
+    run_times = 1
+    optimizer = Adam(lr=0.0002, beta_1=0.5)
+    n_epochs = 100
+    n_batch = 128
 
-    #load datasetㅡ
-    dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))   # pickle은 데이터형 변환 없이 그대로 가져올 수 있게하는 기능!  'rb' 즉 바이너리 형태로 'dataset/EXP1.pickle' 데이터를 로드한다는 의미
-    X_tra, y_tra, X_tst, y_tst = dataset  # tra : training, tst : test / 피클로 가져온걸 학습/평가자료로 저장
-    for j in range(len(n_samples)):   # len(n_samples) = 1 / n_samples = [16]
+    #load dataset
+    dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP2.pickle','rb'))))
+    X_tra, y_tra, X_tst, y_tst = dataset
+    for j in range(len(n_samples)):
         history = []
-
         # select supervised dataset
-        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)  # x는 데이터 y는 레이블값(클래스값) 이겠지??  
-        for i in range(run_times):   # run_times 횟수만큼 반복문을 실행하는 문법
+        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)        
+        for i in range(run_times):
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
             seed(run_times)
             # define a semi-GAN model
-            d_model, c_model = define_discriminator(n_classes, optimizer)   # 분류기, models.py 파일의 define_discriminator 정의됨.
-            g_model = define_generator()   # 생성기, models.py에서 정의됨.
-            gan_model = define_GAN(g_model, d_model, optimizer)    # gan, 마찬가지
+            d_model, c_model = define_discriminator(n_classes, optimizer)
+            g_model = define_generator()
+            gan_model = define_GAN(g_model, d_model, optimizer)
 
             # train the semi-GAN model
             tst_acc = fit_GAN(i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch)
-            # i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch
-            # (run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim = 100):
-            # i = 실행횟수 변수
 
-            history.append(max(tst_acc))   # 리스트 내의 최댓값 들을 history 리스트에 추가
+            history.append(max(tst_acc))
             #history.append(tst_acc)
         best = max (history)
         # save results:
-        fh = open('GAN-{}-{}.pickle'.format(n_samples[j], best),'wb')
-        fh = open('GAN-{}-{}.pickle'.format(n_samples[j], best),'wb')
-        pickle.dump(history, fh)
-        fh.close()
+        #fh = open('GAN-{}-{}.pickle'.format(n_samples[j], best),'wb')
+        #fh = open('GAN-{}-{}.pickle'.format(n_samples[j], best),'wb')
+        #pickle.dump(history, fh)
+        #fh.close()
         # save models:
-        #g_model.save('exp1_result/GAN-g-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #d_model.save('exp1_result/GAN-d-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #c_model.save('exp1_result/GAN-c-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #g_model.save('exp2_result/GAN-g-exp2-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #d_model.save('exp2_result/GAN-d-exp2-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #c_model.save('exp2_result/GAN-c-exp2-{}-{}.h5'.format(n_samples[j], int(best*100)))
 
 
+
+
+def run_exp3():
+    # experiment setup #Train: 400/loc, 6400 in total
+    n_classes = 18
+    n_samples = [3600]
+    run_times = 1
+    optimizer = Adam(lr=0.0002, beta_1=0.5)
+    n_epochs = 100
+    n_batch = 128
+
+    #load dataset
+    dataset1 = data_preproc(np.asarray(pickle.load(open('dataset/EXP3-r1.pickle','rb'))))
+    dataset2 = data_preproc(np.asarray(pickle.load(open('dataset/EXP3-r2.pickle','rb'))))
+    X_tra1, y_tra1, X_tst1, y_tst1 = dataset1
+    X_tra2, y_tra2, X_tst2, y_tst2 = dataset2
+
+    # combine the data from r1/r2
+    X_tra = np.concatenate((X_tra1, X_tra2))
+    y_tra = np.concatenate((y_tra1, y_tra2))
+    X_tst = np.concatenate((X_tst1, X_tst2))
+    y_tst = np.concatenate((y_tst1, y_tst2))
+    dataset = (X_tra, y_tra, X_tst, y_tst)
+
+    for j in range(len(n_samples)):
+        history = []
+        # select supervised dataset
+        X_sup1, y_sup1 = select_supervised_samples(X_tra1, y_tra1, n_samples[j],  n_classes)
+        X_sup2, y_sup2 = select_supervised_samples(X_tra2, y_tra2, n_samples[j],  n_classes)
+        X_sup = np.concatenate((X_sup1, X_sup2))
+        y_sup = np.concatenate((y_sup1, y_sup2))        
+        for i in range(run_times):
+            print('{}/{}'.format(i+1, run_times))
+            # change seed for each run
+            seed(run_times)
+            # define a semi-GAN model
+            d_model, c_model = define_discriminator(n_classes, optimizer)
+            g_model = define_generator()
+            gan_model = define_GAN(g_model, d_model, optimizer)
+
+            # train the semi-GAN model
+            tst_acc = fit_GAN(i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch)
+
+            history.append(max(tst_acc))
+            #history.append(tst_acc)
+        best = max (history)
+
+
+        #g_model.save('exp3_result/GAN-g-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #d_model.save('exp3_result/GAN-d-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #c_model.save('exp3_result/GAN-c-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
+
+        #fh = open('GAN-r2-{}-{}.pickle'.format(n_samples[j], best),'wb')
+        #fh = open('GANr1r2-{}-{}.pickle'.format(n_samples[j], best),'wb')
+        #pickle.dump(history, fh)
+        #fh.close()
 
 def run_cnn():
     '''
@@ -212,6 +263,5 @@ def run_cnn():
 
 if __name__ == '__main__':
 
-    #control_generation()
-    #control_rp()
+    run_exp1()
     # main에서 실행되는 코드를 디버깅하듯 따라가며 이해하기!
