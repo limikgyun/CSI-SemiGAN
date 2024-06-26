@@ -1,11 +1,20 @@
 import torch
 import numpy as np
+<<<<<<< HEAD
 from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
 
 from models import *  # PyTorch 모델 정의가 포함된 가정
 from utils import *  # PyTorch에 맞게 수정된 유틸리티 함수 가정
 
+=======
+from torch.utils.data import DataLoader, TensorDataset
+import pickle
+import torch.optim as optim
+from models import *  # PyTorch 모델 정의가 포함된 가정
+from utils import *  # PyTorch에 맞게 수정된 유틸리티 함수 가정
+
+>>>>>>> f95a997 (VS에 Docker 연결 후 커밋 대량발생;;)
 def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim=100):
     tst_history = []
     X_tra, y_tra, X_tst, y_tst = dataset
@@ -51,7 +60,7 @@ def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_s
         g_loss.backward()
         optimizer_g.step()
         # summarize loss on this batch
-        print('>%d/%d/%d, c[%.3f,%.0f], d[%.3f,%.3f], g[%.3f]' % (run+1, i+1, n_steps, c_loss, c_acc*100, d_loss1[0], d_loss2[0], g_loss))
+        print('>%d/%d/%d, c[%.3f], d[%.3f,%.3f], g[%.3f]' % (run+1, i+1, n_steps, c_loss.item(), d_loss_real.item(), d_loss_fake.item(), g_loss.item()))
         # test after a epoch
         if (i+1) % (bat_per_epo * 1) == 0:
             _, _acc = c_model.evaluate(X_tst, y_tst, verbose=0)
@@ -92,38 +101,34 @@ def generate_fake_samples(generator, latent_dim, n_samples):
 
 def run_exp1():
     #experiment setup
-    n_classes = 16 # ??
-    n_samples = [16] # 레이블된 샘플 갯수 정의 / define the number of labeled samples here
-    run_times = 1 # 학습 횟수 정의 / define the number of runs to traing under this setting
-    optimizer = Adam(lr=0.0002, beta_1=0.5) # 텐서플로의 최적화기
-    n_epochs = 100 # 모든데이터셋이 신경망을 통과한 횟수 / 배치*iterations = epochs
-    n_batch = 128 # 배치 사이즈 
+    n_classes = 16
+    n_samples = [16] # define the number of labeled samples here
+    run_times = 1
+    optimizer = optim.Adam
+    n_epochs = 100
+    n_batch = 128
 
     #load dataset
-    dataset = data_preproc(np.asarray(pickle.load(open('dataset/EXP1.pickle','rb'))))   # pickle은 데이터형 변환 없이 그대로 가져올 수 있게하는 기능!  'rb' 즉 바이너리 형태로 'dataset/EXP1.pickle' 데이터를 로드한다는 의미
-    X_tra, y_tra, X_tst, y_tst = dataset  # tra : training, tst : test / 피클로 가져온걸 학습/평가자료로 저장
-    for j in range(len(n_samples)):   # len(n_samples) = 1 / n_samples = [16]
+    pre_dataset = pickle.load(open('dataset/EXP1.pickle','rb'))
+    dataset = data_preproc(np.asarray(pre_dataset))
+    X_tra, y_tra, X_tst, y_tst = dataset
+    for j in range(len(n_samples)):
         history = []
 
         # select supervised dataset
-        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)  # x는 데이터 y는 레이블값(클래스값) 이겠지??  
-        for i in range(run_times):   # run_times 횟수만큼 반복문을 실행하는 문법
+        X_sup, y_sup = select_supervised_samples(X_tra, y_tra, n_samples[j],  n_classes)
+        for i in range(run_times):
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
-            seed(run_times)
+            torch.manual_seed(run_times)
             # define a semi-GAN model
-            d_model, c_model = define_discriminator(n_classes, optimizer)   # 분류기, models.py 파일의 define_discriminator 정의됨.
-            g_model = define_generator()   # 생성기, models.py에서 정의됨.
-            gan_model = define_GAN(g_model, d_model, optimizer)    # gan, 마찬가지
+            d_model, c_model = define_discriminator(n_classes, optimizer)
+            g_model = define_generator()
+            gan_model = define_GAN(g_model, d_model, optimizer)
 
             # train the semi-GAN model
             tst_acc = fit_GAN(i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch)
-            # i ,g_model, d_model, c_model, gan_model, n_samples[j], n_classes, X_sup, y_sup, dataset, n_epochs, n_batch
-            # (run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim = 100):
-            # i = 실행횟수 변수
-
-            history.append(max(tst_acc))   # 리스트 내의 최댓값 들을 history 리스트에 추가
-            #history.append(tst_acc)
+            history.append(max(tst_acc))
         best = max (history)
         # save results:
         fh = open('GAN-{}-{}.pickle'.format(n_samples[j], best),'wb')
@@ -131,9 +136,9 @@ def run_exp1():
         pickle.dump(history, fh)
         fh.close()
         # save models:
-        #g_model.save('exp1_result/GAN-g-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #d_model.save('exp1_result/GAN-d-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #c_model.save('exp1_result/GAN-c-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #torch.save(g_model.state_dict(), 'exp1_result/GAN-g-exp1-{}-{}.pt'.format(n_samples[j], int(best*100)))
+        #torch.save(d_model.state_dict(), 'exp1_result/GAN-d-exp1-{}-{}.pt'.format(n_samples[j], int(best*100)))
+        #torch.save(c_model.state_dict(), 'exp1_result/GAN-c-exp1-{}-{}.pt'.format(n_samples[j], int(best*100)))
 
 
 def run_exp2():
@@ -141,7 +146,7 @@ def run_exp2():
     n_classes = 14
     n_samples = [14] # define the number of labeled samples here
     run_times = 1
-    optimizer = Adam(lr=0.0002, beta_1=0.5)
+    optimizer = optim.Adam(lr=0.0002, betas=(0.5, 0.999))
     n_epochs = 100
     n_batch = 128
 
@@ -155,7 +160,7 @@ def run_exp2():
         for i in range(run_times):
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
-            seed(run_times)
+            torch.manual_seed(run_times)
             # define a semi-GAN model
             d_model, c_model = define_discriminator(n_classes, optimizer)
             g_model = define_generator()
@@ -173,11 +178,9 @@ def run_exp2():
         #pickle.dump(history, fh)
         #fh.close()
         # save models:
-        #g_model.save('exp2_result/GAN-g-exp2-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #d_model.save('exp2_result/GAN-d-exp2-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #c_model.save('exp2_result/GAN-c-exp2-{}-{}.h5'.format(n_samples[j], int(best*100)))
-
-
+        #torch.save(g_model.state_dict(), 'exp2_result/GAN-g-exp2-{}-{}.pt'.format(n_samples[j], int(best*100)))
+        #torch.save(d_model.state_dict(), 'exp2_result/GAN-d-exp2-{}-{}.pt'.format(n_samples[j], int(best*100)))
+        #torch.save(c_model.state_dict(), 'exp2_result/GAN-c-exp2-{}-{}.pt'.format(n_samples[j], int(best*100)))
 
 
 def run_exp3():
@@ -185,7 +188,7 @@ def run_exp3():
     n_classes = 18
     n_samples = [3600]
     run_times = 1
-    optimizer = Adam(lr=0.0002, beta_1=0.5)
+    optimizer = optim.Adam
     n_epochs = 100
     n_batch = 128
 
@@ -212,7 +215,7 @@ def run_exp3():
         for i in range(run_times):
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
-            seed(run_times)
+            torch.manual_seed(run_times)
             # define a semi-GAN model
             d_model, c_model = define_discriminator(n_classes, optimizer)
             g_model = define_generator()
@@ -226,9 +229,9 @@ def run_exp3():
         best = max (history)
 
 
-        #g_model.save('exp3_result/GAN-g-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #d_model.save('exp3_result/GAN-d-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
-        #c_model.save('exp3_result/GAN-c-exp1-{}-{}.h5'.format(n_samples[j], int(best*100)))
+        #torch.save(g_model.state_dict(), 'exp3_result/GAN-g-exp1-{}-{}.pt'.format(n_samples[j], int(best*100)))
+        #torch.save(d_model.state_dict(), 'exp3_result/GAN-d-exp1-{}-{}.pt'.format(n_samples[j], int(best*100)))
+        #torch.save(c_model.state_dict(), 'exp3_result/GAN-c-exp1-{}-{}.pt'.format(n_samples[j], int(best*100)))
 
         #fh = open('GAN-r2-{}-{}.pickle'.format(n_samples[j], best),'wb')
         #fh = open('GANr1r2-{}-{}.pickle'.format(n_samples[j], best),'wb')
@@ -244,7 +247,7 @@ def run_cnn():
     n_classes = 18
     n_samples = [18, 36, 72, 1800, 3600]
     run_times = 10
-    optimizer = Adam(lr=0.0002, beta_1=0.5)
+    optimizer = optim.Adam
     batch_size = 18 
     epochs = 50
 
@@ -267,7 +270,7 @@ def run_cnn():
         y_sup = np.concatenate((y_sup1, y_sup2))        
 
         for i in range(run_times):
-            seed(run_times)
+            torch.manual_seed(run_times)
             model = CNN (n_classes, optimizer)
             print('{}/{}'.format(i+1, run_times))
             model.fit(X_sup, y_sup, batch_size, epochs, verbose = 1)
