@@ -99,6 +99,7 @@ def generate_fake_samples(generator, latent_dim, n_samples):
     y = np.zeros((n_samples, 1))
     return images, y   
 
+
 def run_exp1():
     #experiment setup
     n_classes = 16
@@ -120,7 +121,8 @@ def run_exp1():
         for i in range(run_times):
             print('{}/{}'.format(i+1, run_times))
             # change seed for each run
-            torch.manual_seed(run_times)
+            # torch.manual_seed(run_times)
+            torch.manual_seed(i)  # 버그 수정: run_times 대신 i를 사용하여 각 실행마다 다른 시드를 제공
             # define a semi-GAN model
             d_model, c_model = define_discriminator(n_classes, optimizer)
             g_model = define_generator()
