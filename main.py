@@ -1,20 +1,10 @@
 import torch
 import numpy as np
-<<<<<<< HEAD
-from torch import optim
-from torch.utils.data import DataLoader, TensorDataset
-
-from models import *  # PyTorch 모델 정의가 포함된 가정
-from utils import *  # PyTorch에 맞게 수정된 유틸리티 함수 가정
-
-=======
 from torch.utils.data import DataLoader, TensorDataset
 import pickle
 import torch.optim as optim
 from models import *  # PyTorch 모델 정의가 포함된 가정
 from utils import *  # PyTorch에 맞게 수정된 유틸리티 함수 가정
-
->>>>>>> f95a997 (VS에 Docker 연결 후 커밋 대량발생;;)
 def fit_GAN(run, g_model, d_model, c_model, gan_model, n_samples, n_classes, X_sup, y_sup, dataset, n_epochs, n_batch, latent_dim=100):
     tst_history = []
     X_tra, y_tra, X_tst, y_tst = dataset
